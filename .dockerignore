@@ -1,27 +1,37 @@
-HELP.md
+FROM amazoncorretto:17-alpine AS build
+
+WORKDIR /workspace/app
+
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+COPY src src
+
+RUN chmod +x mvnw
+RUN ./mvnw install -DskipTests
+RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
+
+FROM amazoncorretto:17-alpine
+
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+COPY --from=build /workspace/app/target/dependency/BOOT-INF/lib /app/lib
+COPY --from=build /workspace/app/target/dependency/META-INF /app/META-INF
+COPY --from=build /workspace/app/target/dependency/BOOT-INF/classes /app
+
+ENTRYPOINT ["java", "-cp", "app:app/lib/*", "com.golfclub.GolfClubApplication"]
+
+# .dockerignore
+.git
+.gitignore
+.env
+.mvn
+*.md
 target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-.idea
-*.iws
+!target/*.jar
+logs/
+.idea/
 *.iml
-*.ipr
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 .vscode/
-.mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
