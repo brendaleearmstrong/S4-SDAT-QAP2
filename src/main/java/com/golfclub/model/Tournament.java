@@ -1,67 +1,85 @@
 package com.golfclub.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "tournaments", indexes = {
-        @Index(name = "idx_tournament_date", columnList = "startDate"),
-        @Index(name = "idx_tournament_location", columnList = "location")
-})
+@Table(name = "tournaments")
 public class Tournament {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @FutureOrPresent
+    @NotNull(message = "Start date is required")
+    @FutureOrPresent(message = "Start date must be present or future")
+    @Column(name = "start_date")
     private LocalDate startDate;
 
-    @NotNull
-    @FutureOrPresent
+    @NotNull(message = "End date is required")
+    @FutureOrPresent(message = "End date must be present or future")
+    @Column(name = "end_date")
     private LocalDate endDate;
 
-    @NotBlank
+    @NotBlank(message = "Location is required")
+    @Column(name = "location")
     private String location;
 
-    @Positive
-    @Column(nullable = false)
+    @Positive(message = "Entry fee must be positive")
+    @Column(name = "entry_fee", nullable = false)
     private Double entryFee;
 
-    @PositiveOrZero
-    @Column(nullable = false)
+    @PositiveOrZero(message = "Cash prize must be zero or positive")
+    @Column(name = "cash_prize_amount", nullable = false)
     private Double cashPrizeAmount;
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnoreProperties("tournaments")
+    @ManyToMany
     @JoinTable(
             name = "tournament_members",
             joinColumns = @JoinColumn(name = "tournament_id"),
             inverseJoinColumns = @JoinColumn(name = "member_id")
     )
-    private List<Member> participatingMembers = new ArrayList<>();
+    private Set<Member> participatingMembers = new HashSet<>();
 
     @Version
+    @Column(name = "version")
     private Long version;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private TournamentStatus status = TournamentStatus.SCHEDULED;
 
-    @Min(2)
-    @Column(nullable = false)
+    @Min(value = 2, message = "Minimum participants must be at least 2")
+    @Column(name = "minimum_participants", nullable = false)
     private Integer minimumParticipants = 2;
 
-    @Max(100)
-    @Column(nullable = false)
+    @Max(value = 100, message = "Maximum participants cannot exceed 100")
+    @Column(name = "maximum_participants", nullable = false)
     private Integer maximumParticipants = 100;
 
     public enum TournamentStatus {
         SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
     }
 
+    // Default constructor
+    public Tournament() {
+    }
+
+    // Constructor with required fields
+    public Tournament(LocalDate startDate, LocalDate endDate, String location,
+                      Double entryFee, Double cashPrizeAmount) {
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.location = location;
+        this.entryFee = entryFee;
+        this.cashPrizeAmount = cashPrizeAmount;
+    }
+
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -110,11 +128,11 @@ public class Tournament {
         this.cashPrizeAmount = cashPrizeAmount;
     }
 
-    public List<Member> getParticipatingMembers() {
+    public Set<Member> getParticipatingMembers() {
         return participatingMembers;
     }
 
-    public void setParticipatingMembers(List<Member> participatingMembers) {
+    public void setParticipatingMembers(Set<Member> participatingMembers) {
         this.participatingMembers = participatingMembers;
     }
 
@@ -150,6 +168,7 @@ public class Tournament {
         this.maximumParticipants = maximumParticipants;
     }
 
+    // Business methods
     public void addMember(Member member) {
         participatingMembers.add(member);
         member.getTournaments().add(this);
@@ -158,5 +177,48 @@ public class Tournament {
     public void removeMember(Member member) {
         participatingMembers.remove(member);
         member.getTournaments().remove(this);
+    }
+
+    public boolean isRegistrationOpen() {
+        return status == TournamentStatus.SCHEDULED &&
+                participatingMembers.size() < maximumParticipants &&
+                LocalDate.now().isBefore(startDate);
+    }
+
+    public boolean hasMinimumParticipants() {
+        return participatingMembers.size() >= minimumParticipants;
+    }
+
+    public boolean isMemberRegistered(Member member) {
+        return participatingMembers.contains(member);
+    }
+
+    public Double calculateTotalRevenue() {
+        return entryFee * participatingMembers.size();
+    }
+
+    // Equals and HashCode
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Tournament)) return false;
+        Tournament that = (Tournament) o;
+        return getId() != null && getId().equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "Tournament{" +
+                "id=" + id +
+                ", startDate=" + startDate +
+                ", location='" + location + '\'' +
+                ", status=" + status +
+                ", participants=" + participatingMembers.size() +
+                '}';
     }
 }

@@ -1,5 +1,6 @@
 package com.golfclub.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
@@ -16,31 +17,32 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Name is required")
-    @Pattern(regexp = "^[a-zA-Z\\s]{2,50}$", message = "Name must be 2-50 characters long and contain only letters")
+    @NotBlank
+    @Pattern(regexp = "^[a-zA-Z\\s]{2,50}$")
     private String memberName;
 
-    @NotBlank(message = "Address is required")
+    @NotBlank
     private String memberAddress;
 
-    @Email(message = "Invalid email format")
-    @NotBlank(message = "Email is required")
+    @Email
+    @NotBlank
     @Column(unique = true)
     private String memberEmail;
 
-    @Pattern(regexp = "^\\d{3}-\\d{3}-\\d{4}$", message = "Phone number must be in format XXX-XXX-XXXX")
+    @Pattern(regexp = "^\\d{3}-\\d{3}-\\d{4}$")
     @Column(unique = true)
     private String memberPhone;
 
-    @NotNull(message = "Start date is required")
-    @PastOrPresent(message = "Start date cannot be in the future")
+    @NotNull
+    @PastOrPresent
     private LocalDate startDate;
 
-    @Min(value = 1, message = "Duration must be at least 1 month")
-    @Max(value = 60, message = "Duration cannot exceed 60 months")
+    @Min(1)
+    @Max(60)
     private Integer duration;
 
-    @ManyToMany(mappedBy = "participatingMembers")
+    @JsonIgnore
+    @ManyToMany(mappedBy = "participatingMembers", fetch = FetchType.EAGER)
     private List<Tournament> tournaments = new ArrayList<>();
 
     @Version
@@ -58,6 +60,21 @@ public class Member {
 
     public enum MembershipStatus {
         ACTIVE, EXPIRED, SUSPENDED, PENDING
+    }
+
+    public Member() {
+    }
+
+    public Member(String memberName, String memberAddress, String memberEmail, String memberPhone, LocalDate startDate, Integer duration) {
+        this.memberName = memberName;
+        this.memberAddress = memberAddress;
+        this.memberEmail = memberEmail;
+        this.memberPhone = memberPhone;
+        this.startDate = startDate;
+        this.duration = duration;
+        this.totalTournamentsPlayed = 0;
+        this.totalWinnings = 0.0;
+        this.status = MembershipStatus.ACTIVE;
     }
 
     public Long getId() {
@@ -124,14 +141,6 @@ public class Member {
         this.tournaments = tournaments;
     }
 
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-
     public MembershipStatus getStatus() {
         return status;
     }
@@ -154,5 +163,34 @@ public class Member {
 
     public void setTotalWinnings(Double totalWinnings) {
         this.totalWinnings = totalWinnings;
+    }
+
+    public boolean isActive() {
+        return status == MembershipStatus.ACTIVE;
+    }
+
+    public boolean isMembershipExpired() {
+        return LocalDate.now().isAfter(startDate.plusMonths(duration));
+    }
+
+    public void incrementTournamentsPlayed() {
+        this.totalTournamentsPlayed++;
+    }
+
+    public void addWinnings(Double amount) {
+        this.totalWinnings += amount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Member)) return false;
+        Member member = (Member) o;
+        return getId() != null && getId().equals(member.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

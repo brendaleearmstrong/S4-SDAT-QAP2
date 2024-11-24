@@ -27,7 +27,6 @@ ENTRYPOINT ["java", "-cp", "app:app/lib/*", "com.golfclub.GolfClubApplication"]
 .git
 .gitignore
 .env
-.mvn
 *.md
 target/
 !target/*.jar

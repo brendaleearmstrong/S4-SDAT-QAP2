@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/tournaments")
@@ -61,71 +62,5 @@ public class TournamentController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{tournamentId}/members/{memberId}")
-    public ResponseEntity<Tournament> addMemberToTournament(
-            @PathVariable Long tournamentId,
-            @PathVariable Long memberId) {
-        try {
-            Tournament updated = tournamentService.addMemberToTournament(tournamentId, memberId);
-            return ResponseEntity.ok(updated);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @DeleteMapping("/{tournamentId}/members/{memberId}")
-    public ResponseEntity<Tournament> removeMemberFromTournament(
-            @PathVariable Long tournamentId,
-            @PathVariable Long memberId) {
-        try {
-            Tournament updated = tournamentService.removeMemberFromTournament(tournamentId, memberId);
-            return ResponseEntity.ok(updated);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @GetMapping("/search/location/{location}")
-    public List<Tournament> searchByLocation(@PathVariable String location) {
-        return tournamentService.findByLocation(location);
-    }
-
-    @GetMapping("/search/date-range")
-    public List<Tournament> searchByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return tournamentService.findByDateRange(startDate, endDate);
-    }
-
-    @GetMapping("/search/status/{status}")
-    public List<Tournament> searchByStatus(@PathVariable Tournament.TournamentStatus status) {
-        return tournamentService.findByStatus(status);
-    }
-
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<Void> updateStatus(
-            @PathVariable Long id,
-            @RequestBody Tournament.TournamentStatus status) {
-        try {
-            tournamentService.updateTournamentStatus(id, status);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @GetMapping("/{id}/revenue")
-    public ResponseEntity<Double> getTournamentRevenue(@PathVariable Long id) {
-        return ResponseEntity.ok(tournamentService.calculateTournamentRevenue(id));
-    }
-
-    @GetMapping("/revenue/total")
-    public ResponseEntity<Double> getTotalRevenue() {
-        return ResponseEntity.ok(tournamentService.calculateTotalRevenue());
-    }
-
-    @GetMapping("/current")
-    public List<Tournament> getCurrentTournaments() {
-        return tournamentService.findCurrentTournaments();
-    }
 }
+
