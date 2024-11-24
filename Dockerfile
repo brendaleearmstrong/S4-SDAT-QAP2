@@ -1,4 +1,5 @@
 FROM amazoncorretto:17-alpine AS build
+
 WORKDIR /workspace/app
 
 COPY mvnw .
@@ -16,4 +17,4 @@ ARG DEPENDENCY=/workspace/app/target/dependency
 COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
 COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
 COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
-ENTRYPOINT ["java", "-cp", "app:app/lib/*", "com.golf.GolfClubApplication"]
+ENTRYPOINT ["java", "-cp", "app:app/lib/*", "com.golfclub.GolfClubApplication"]

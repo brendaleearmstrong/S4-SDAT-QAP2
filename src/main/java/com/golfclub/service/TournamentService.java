@@ -35,14 +35,23 @@ public class TournamentService {
         if (tournament.getMinimumParticipants() > tournament.getMaximumParticipants()) {
             throw new IllegalArgumentException("Minimum participants cannot be greater than maximum");
         }
+        if (tournament.getStartDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Tournament cannot start in the past");
+        }
     }
 
+    @Transactional(readOnly = true)
     public Optional<Tournament> getTournamentById(Long id) {
         return tournamentRepository.findById(id);
     }
 
+    @Transactional(readOnly = true)
     public List<Tournament> getAllTournaments() {
-        return tournamentRepository.findAll();
+        return tournamentRepository.findAllWithMembers();
+    }
+
+    public void deleteTournament(Long id) {
+        tournamentRepository.deleteById(id);
     }
 
     public Tournament updateTournament(Long id, Tournament tournamentDetails) {
@@ -61,26 +70,30 @@ public class TournamentService {
                 .orElseThrow(() -> new IllegalArgumentException("Tournament not found"));
     }
 
-    public void deleteTournament(Long id) {
-        tournamentRepository.deleteById(id);
-    }
-
     public Tournament addMemberToTournament(Long tournamentId, Long memberId) {
         Tournament tournament = tournamentRepository.findById(tournamentId)
                 .orElseThrow(() -> new IllegalArgumentException("Tournament not found"));
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
+        validateMemberRegistration(tournament, member);
+        tournament.addMember(member);
+        return tournamentRepository.save(tournament);
+    }
+
+    private void validateMemberRegistration(Tournament tournament, Member member) {
         if (tournament.getParticipatingMembers().size() >= tournament.getMaximumParticipants()) {
             throw new IllegalStateException("Tournament has reached maximum participants");
         }
-
         if (member.getStatus() != Member.MembershipStatus.ACTIVE) {
             throw new IllegalStateException("Member is not active");
         }
-
-        tournament.addMember(member);
-        return tournamentRepository.save(tournament);
+        if (tournament.getStatus() != Tournament.TournamentStatus.SCHEDULED) {
+            throw new IllegalStateException("Tournament is not open for registration");
+        }
+        if (tournament.isMemberRegistered(member)) {
+            throw new IllegalStateException("Member is already registered");
+        }
     }
 
     public Tournament removeMemberFromTournament(Long tournamentId, Long memberId) {
@@ -89,18 +102,25 @@ public class TournamentService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
+        if (!tournament.isMemberRegistered(member)) {
+            throw new IllegalStateException("Member is not registered for this tournament");
+        }
+
         tournament.removeMember(member);
         return tournamentRepository.save(tournament);
     }
 
+    @Transactional(readOnly = true)
     public List<Tournament> findByLocation(String location) {
         return tournamentRepository.findByLocationContainingIgnoreCase(location);
     }
 
+    @Transactional(readOnly = true)
     public List<Tournament> findByDateRange(LocalDate startDate, LocalDate endDate) {
         return tournamentRepository.findByStartDateBetween(startDate, endDate);
     }
 
+    @Transactional(readOnly = true)
     public List<Tournament> findByStatus(Tournament.TournamentStatus status) {
         return tournamentRepository.findByStatus(status);
     }
@@ -118,34 +138,51 @@ public class TournamentService {
     }
 
     private void validateStatusTransition(Tournament tournament, Tournament.TournamentStatus newStatus) {
-        if (tournament.getStatus() == Tournament.TournamentStatus.COMPLETED &&
-                newStatus != Tournament.TournamentStatus.COMPLETED) {
+        if (tournament.getStatus() == Tournament.TournamentStatus.COMPLETED) {
             throw new IllegalStateException("Cannot change status of completed tournament");
         }
-        if (tournament.getParticipatingMembers().size() < tournament.getMinimumParticipants() &&
-                newStatus == Tournament.TournamentStatus.IN_PROGRESS) {
+        if (newStatus == Tournament.TournamentStatus.IN_PROGRESS &&
+                !tournament.hasMinimumParticipants()) {
             throw new IllegalStateException("Cannot start tournament with insufficient participants");
         }
     }
 
     private void updateMemberStats(Tournament tournament) {
         for (Member member : tournament.getParticipatingMembers()) {
-            member.setTotalTournamentsPlayed(member.getTotalTournamentsPlayed() + 1);
+            member.incrementTournamentsPlayed();
             memberRepository.save(member);
         }
     }
 
+    @Transactional(readOnly = true)
     public Double calculateTotalRevenue() {
         return tournamentRepository.calculateTotalRevenue();
     }
 
+    @Transactional(readOnly = true)
     public Double calculateTournamentRevenue(Long tournamentId) {
         return tournamentRepository.findById(tournamentId)
-                .map(t -> t.getEntryFee() * t.getParticipatingMembers().size())
+                .map(Tournament::calculateTotalRevenue)
                 .orElse(0.0);
     }
 
+    @Transactional(readOnly = true)
     public List<Tournament> findCurrentTournaments() {
         return tournamentRepository.findCurrentTournaments(LocalDate.now());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Tournament> findAvailableTournaments() {
+        return tournamentRepository.findAvailableTournaments();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Tournament> findUpcomingTournaments() {
+        return tournamentRepository.findUpcomingTournaments(LocalDate.now());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Tournament> findRecentlyCompletedTournaments() {
+        return tournamentRepository.findRecentlyCompletedTournaments();
     }
 }

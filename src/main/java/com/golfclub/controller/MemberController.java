@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/members")
@@ -87,10 +88,23 @@ public class MemberController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Void> updateStatus(
             @PathVariable Long id,
-            @RequestBody Member.MembershipStatus status) {
+            @RequestBody Map<String, String> status) {
         try {
-            memberService.updateMemberStatus(id, status);
+            Member.MembershipStatus newStatus = Member.MembershipStatus.valueOf(status.get("status"));
+            memberService.updateMemberStatus(id, newStatus);
             return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PatchMapping("/{id}/duration")
+    public ResponseEntity<Member> extendMembership(
+            @PathVariable Long id,
+            @RequestBody Map<String, Integer> extension) {
+        try {
+            Member updated = memberService.updateMembershipDuration(id, extension.get("months"));
+            return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -100,5 +114,16 @@ public class MemberController {
     public List<Member> findByTournamentDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return memberService.findByTournamentDate(date);
+    }
+
+    @GetMapping("/top-participants")
+    public List<Member> getTopParticipants() {
+        return memberService.findTopParticipants();
+    }
+
+    @PostMapping("/{id}/check-status")
+    public ResponseEntity<Void> checkMembershipStatus(@PathVariable Long id) {
+        memberService.checkMembershipStatus(id);
+        return ResponseEntity.ok().build();
     }
 }

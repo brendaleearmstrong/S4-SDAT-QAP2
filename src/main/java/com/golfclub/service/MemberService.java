@@ -35,12 +35,18 @@ public class MemberService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Optional<Member> getMemberById(Long id) {
         return memberRepository.findById(id);
     }
 
+    @Transactional(readOnly = true)
     public List<Member> getAllMembers() {
         return memberRepository.findAll();
+    }
+
+    public void deleteMember(Long id) {
+        memberRepository.deleteById(id);
     }
 
     public Member updateMember(Long id, Member updatedMember) {
@@ -60,22 +66,22 @@ public class MemberService {
                 .orElseThrow(() -> new IllegalArgumentException("Member not found"));
     }
 
-    public void deleteMember(Long id) {
-        memberRepository.deleteById(id);
-    }
-
+    @Transactional(readOnly = true)
     public List<Member> searchByName(String name) {
         return memberRepository.findByMemberNameContainingIgnoreCase(name);
     }
 
+    @Transactional(readOnly = true)
     public List<Member> searchByPhone(String phone) {
         return memberRepository.findByMemberPhoneContaining(phone);
     }
 
+    @Transactional(readOnly = true)
     public List<Member> findByStatus(Member.MembershipStatus status) {
         return memberRepository.findByStatus(status);
     }
 
+    @Transactional(readOnly = true)
     public List<Member> findByMinimumTournaments(Integer count) {
         return memberRepository.findByTotalTournamentsPlayedGreaterThan(count);
     }
@@ -88,11 +94,36 @@ public class MemberService {
                 });
     }
 
+    @Transactional(readOnly = true)
     public List<Member> findActiveMembers() {
         return memberRepository.findActiveMembers(LocalDate.now());
     }
 
+    @Transactional(readOnly = true)
     public List<Member> findByTournamentDate(LocalDate date) {
         return memberRepository.findByTournamentStartDate(date);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Member> findTopParticipants() {
+        return memberRepository.findTopParticipants();
+    }
+
+    public Member updateMembershipDuration(Long memberId, Integer additionalMonths) {
+        return memberRepository.findById(memberId)
+                .map(member -> {
+                    member.setDuration(member.getDuration() + additionalMonths);
+                    return memberRepository.save(member);
+                })
+                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+    }
+
+    public void checkMembershipStatus(Long memberId) {
+        memberRepository.findById(memberId).ifPresent(member -> {
+            if (member.isMembershipExpired()) {
+                member.setStatus(Member.MembershipStatus.EXPIRED);
+                memberRepository.save(member);
+            }
+        });
     }
 }

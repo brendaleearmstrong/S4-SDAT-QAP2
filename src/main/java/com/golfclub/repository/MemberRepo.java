@@ -1,4 +1,3 @@
-
 package com.golfclub.repository;
 
 import com.golfclub.model.Member;
@@ -27,4 +26,7 @@ public interface MemberRepo extends JpaRepository<Member, Long> {
 
     @Query("SELECT m FROM Member m WHERE m.startDate <= :date AND DATEADD(MONTH, m.duration, m.startDate) > :date")
     List<Member> findActiveMembers(@Param("date") LocalDate date);
+
+    @Query("SELECT m FROM Member m WHERE m.status = 'ACTIVE' ORDER BY m.totalTournamentsPlayed DESC")
+    List<Member> findTopParticipants();
 }
