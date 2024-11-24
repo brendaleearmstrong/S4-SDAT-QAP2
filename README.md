@@ -48,7 +48,7 @@ Run the Maven build process to package the application:
 Start the application using Docker Compose:
 
 ```bash
-docker-compose up -d
+docker-compose up --build
 ```
 
 This will:
