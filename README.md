@@ -1,214 +1,198 @@
-# Golf Club Management System
+# Golf Club Tournament Management System - QAP2
 
-This project implements a RESTful API for managing golf club members and tournaments. It is designed to run in a containerized environment using Docker and connects to a MySQL database.
-
----
-
-## Features
-
-- **Manage Members**: Add, retrieve, and search members.
-- **Manage Tournaments**: Add, retrieve, and search tournaments.
-- **Link Members to Tournaments**: Assign members to tournaments and retrieve participating members.
-- **Containerized Deployment**: Simplified setup with Docker for developers.
-
----
-
-## Prerequisites
-
-Ensure you have the following installed on your machine:
-
-- **Docker**
-- **Docker Compose**
-- **Java 17**
-- **Maven**
-
----
+A Spring Boot REST API for managing golf club members and tournaments, built with MySQL and Docker. This project demonstrates Object-Relational Mapping (ORM) patterns and containerization techniques.
 
 ## Getting Started with Docker
 
-### 1. Clone the Repository
+### Prerequisites
+- Docker Desktop
+- Git
 
-Clone the project repository:
+### Running the Application
 
+1. **Clone the Repository**
 ```bash
-git clone https://github.com/brendaleearmstrong/S4-SDAT-QAP2
+git clone https://github.com/brendaleearmstrong/S4-SDAT-QAP2.git
 cd S4-SDAT-QAP2
 ```
 
-### 2. Build the Application
-
-Run the Maven build process to package the application:
-
-```bash
-./mvnw clean install
-```
-
-### 3. Run the Application with Docker Compose
-
-Start the application using Docker Compose:
-
+2. **Start the Application with Docker**
 ```bash
 docker-compose up --build
 ```
 
-This will:
-1. Set up the MySQL database in a Docker container.
-2. Deploy the Spring Boot application in another Docker container.
+This command:
+- Builds the Spring Boot application
+- Creates a MySQL database container
+- Links the application with the database
+- Exposes the API on port 8080
 
-### 4. Verify the Containers
-
-Check if the containers are running:
-
+3. **Verify Setup**
 ```bash
 docker ps
 ```
-
 You should see two containers:
-- **`golfclub-mysql`** for the MySQL database.
-- **`golfclub-app`** for the Spring Boot application.
+- `golfclub-mysql`: Database container
+- `golfclub-app`: Spring Boot application container
 
-### 5. Access the Application
-
-- **API Base URL**: [http://localhost:8080](http://localhost:8080)
-- **Health Check**: [http://localhost:8080/api/v1/health](http://localhost:8080/api/v1/health)
-
-### 6. Stop the Application
-
-Stop the containers and clean up resources:
-
+4. **Stop the Application**
 ```bash
-docker-compose down --volumes
+docker-compose down
 ```
 
----
-
-## API Endpoints
+## API Documentation
 
 ### Member Endpoints
 
-| Method | Endpoint                         | Description                                |
-|--------|----------------------------------|--------------------------------------------|
-| GET    | `/api/v1/members`                | Retrieve all members.                     |
-| POST   | `/api/v1/members`                | Add a new member.                         |
-| GET    | `/api/v1/members/{id}`           | Retrieve a member by ID.                  |
-| GET    | `/api/v1/members/search`         | Search members with filters.              |
+#### Basic CRUD Operations
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/members` | Create new member |
+| GET | `/api/v1/members` | Get all members |
+| GET | `/api/v1/members/{id}` | Get member by ID |
+| PUT | `/api/v1/members/{id}` | Update member |
+| DELETE | `/api/v1/members/{id}` | Delete member |
 
-**Member Search Parameters**:
+#### Search and Filter Operations
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/members/search/name/{name}` | Search members by name |
+| GET | `/api/v1/members/search/phone/{phone}` | Search by phone number |
+| GET | `/api/v1/members/search/status/{status}` | Filter by status |
+| GET | `/api/v1/members/search/active` | Get only active members |
+| GET | `/api/v1/members/search/tournaments` | Search by minimum tournament count |
+| GET | `/api/v1/members/search/tournament-date` | Find members by tournament date |
+| GET | `/api/v1/members/top-participants` | Get most active participants |
 
-- `/api/v1/members/search`
-  - Query Parameters:
-    - **`name`**: Filter members by name.
-    - **`phone`**: Filter members by phone number.
-    - **`membershipType`**: Filter by membership type.
-    - **`startDate`**: Filter by membership start date.
+#### Member Management Operations
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| PATCH | `/api/v1/members/{id}/status` | Update membership status |
+| PATCH | `/api/v1/members/{id}/duration` | Extend membership duration |
+| POST | `/api/v1/members/{id}/check-status` | Check membership status |
 
 ### Tournament Endpoints
 
-| Method | Endpoint                          | Description                                |
-|--------|-----------------------------------|--------------------------------------------|
-| GET    | `/api/v1/tournaments`             | Retrieve all tournaments.                 |
-| POST   | `/api/v1/tournaments`             | Add a new tournament.                     |
-| GET    | `/api/v1/tournaments/{id}`        | Retrieve a tournament by ID.              |
-| GET    | `/api/v1/tournaments/search`      | Search tournaments with filters.          |
+#### Basic Operations
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/tournaments` | Create new tournament |
+| GET | `/api/v1/tournaments` | Get all tournaments |
+| GET | `/api/v1/tournaments/{id}` | Get tournament by ID |
+| PUT | `/api/v1/tournaments/{id}` | Update tournament |
+| DELETE | `/api/v1/tournaments/{id}` | Delete tournament |
 
-**Tournament Search Parameters**:
+### API Request Examples
 
-- `/api/v1/tournaments/search`
-  - Query Parameters:
-    - **`startDate`**: Filter by tournament start date.
-    - **`location`**: Filter by location.
-    - **`entryFee`**: Filter by entry fee.
+#### Create Member
+```http
+POST /api/v1/members
+Content-Type: application/json
 
-### Linking Members and Tournaments
-
-| Method | Endpoint                                  | Description                              |
-|--------|------------------------------------------|------------------------------------------|
-| POST   | `/api/v1/tournaments/{id}/members`       | Add members to a tournament.             |
-| GET    | `/api/v1/tournaments/{id}/members`       | Get all members in a tournament.         |
-
----
-
-## Docker Commands
-
-### Build and Start Docker Containers
-
-Use the following command to build and start the containers:
-
-```bash
-docker-compose up -d
+{
+    "memberName": "John Doe",
+    "memberAddress": "123 Golf Street",
+    "memberEmail": "john@example.com",
+    "memberPhone": "123-456-7890",
+    "startDate": "2024-01-01",
+    "duration": 12
+}
 ```
 
-### Check Running Containers
+#### Create Tournament
+```http
+POST /api/v1/tournaments
+Content-Type: application/json
 
-To ensure the containers are running:
-
-```bash
-docker ps
+{
+    "startDate": "2024-12-01",
+    "endDate": "2024-12-03",
+    "location": "Main Course",
+    "entryFee": 100.00,
+    "cashPrizeAmount": 1000.00,
+    "minimumParticipants": 2,
+    "maximumParticipants": 100
+}
 ```
 
-### Restart the Environment
-
-To refresh or restart the volumes:
-
-```bash
-docker-compose down --volumes
-docker-compose up -d
-```
-
-### Logs
-
-View the logs for troubleshooting:
-
-```bash
-docker logs golfclub-app
-docker logs golfclub-mysql
-```
-
----
-
-## Testing with Postman
-
-- **Test the API Endpoints**: Use Postman to interact with the API.
-- **Collection**: You can create a Postman collection to streamline testing the endpoints.
-
----
-
-## Project Details
-
-### Docker Compose Services
-
-1. **MySQL Database**
-   - Service: `mysql`
-   - Port: `3306`
-   - Data Volume: `/var/lib/mysql`
-   - User: `golfuser`
-   - Password: `golfpass`
-
-2. **Spring Boot Application**
-   - Service: `app`
-   - Port: `8080`
-
----
-
-## Example Database Entities
+## Data Models
 
 ### Member Entity
-
-- **ID** (auto-generated)
-- **Name**
-- **Address**
-- **Email**
-- **Phone Number**
-- **Start Date of Membership**
-- **Duration of Membership**
+- ID (auto-generated)
+- Member Name (letters and spaces, 2-50 chars)
+- Member Address
+- Member Email (unique, validated)
+- Member Phone (format: ###-###-####)
+- Start Date
+- Duration (1-60 months)
+- Status (ACTIVE, EXPIRED, SUSPENDED, PENDING)
+- Total Tournaments Played
+- Total Winnings
 
 ### Tournament Entity
+- ID (auto-generated)
+- Start Date (future or present)
+- End Date (future or present)
+- Location
+- Entry Fee (positive number)
+- Cash Prize Amount (zero or positive)
+- Participant Limits (min: 2, max: 100)
+- Status (SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED)
+- Participating Members
 
-- **ID** (auto-generated)
-- **Start Date**
-- **End Date**
-- **Location**
-- **Entry Fee**
-- **Cash Prize Amount**
-- **Participating Members**
+## Docker Configuration
 
+### Container Details
+1. **MySQL Database**
+   - Image: MySQL 8.0
+   - Port: 3306
+   - Environment:
+     - Database: golfclub
+     - Username: golfuser
+     - Password: golfpass
+
+2. **Spring Boot Application**
+   - Built from Dockerfile
+   - Port: 8080
+   - Dependencies: MySQL container
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+1. **Container Start-up Issues**
+```bash
+# Remove existing containers and volumes
+docker-compose down -v
+
+# Rebuild and start
+docker-compose up --build
+```
+
+2. **Database Connection Issues**
+```bash
+# Check MySQL container logs
+docker logs golfclub-mysql
+
+# Check application logs
+docker logs golfclub-app
+```
+
+3. **Port Conflicts**
+- Ensure ports 8080 and 3306 are available
+- If needed, modify port mappings in docker-compose.yml
+
+## Testing
+
+The API has been tested using Postman. Test screenshots are available showing successful:
+- Member creation and retrieval
+- Tournament creation and retrieval
+- Member searches
+- Tournament searches
+
+The API is accessible at `http://localhost:8080` once Docker containers are running.
+
+## Course Information
+- Course: Software Design, Architecture, Testing
+- Assessment: QAP2
+- Date: November 2024
